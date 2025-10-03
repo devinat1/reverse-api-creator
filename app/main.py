@@ -21,6 +21,7 @@ from app.request_analyzer import RequestAnalyzer
 from app.request_executor import RequestExecutor
 from app.request_filter import RequestFilter
 from app.storage import storage_service
+from app.url_to_har import URLToHARConverter
 
 # Configure logging
 logging.basicConfig(
@@ -124,6 +125,16 @@ class ExecuteRequestResponse(BaseModel):
     error: Optional[dict] = None
 
 
+class URLToHARRequest(BaseModel):
+    url: str
+
+
+class URLToHARResponse(BaseModel):
+    job_id: str
+    message: str
+    status: str
+
+
 # Endpoints
 @app.get("/")
 async def root():
@@ -194,6 +205,91 @@ async def upload_har(
     return UploadResponse(
         job_id=str(job_id),
         message="HAR file uploaded successfully and queued for processing",
+        status="pending",
+    )
+
+
+@app.post("/url-to-har", response_model=URLToHARResponse)
+@limiter.limit(settings.rate_limit_upload)
+async def url_to_har(
+    request: FastAPIRequest,
+    body: URLToHARRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Convert a URL to HAR format by loading it in a browser.
+
+    The URL will be loaded in a headless browser, network traffic will be captured,
+    and the result will be processed just like an uploaded HAR file.
+    """
+    # Check if URL-to-HAR conversion is enabled
+    if not settings.enable_url_to_har:
+        raise HTTPException(
+            status_code=403,
+            detail="URL to HAR conversion is disabled",
+        )
+
+    # Convert URL to HAR
+    try:
+        result = await URLToHARConverter.convert_url_to_har(body.url)
+
+        if not result["success"]:
+            raise HTTPException(
+                status_code=400,
+                detail=result.get("error", "Failed to convert URL to HAR"),
+            )
+
+        har_content = result["har_content"]
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error converting URL to HAR: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to convert URL to HAR: {str(e)}",
+        )
+
+    # Generate job ID
+    job_id = uuid4()
+
+    # Get user IP
+    user_ip = request.client.host if request.client else None
+
+    # Extract filename from URL (use domain name)
+    from urllib.parse import urlparse
+
+    parsed_url = urlparse(body.url)
+    filename = f"{parsed_url.netloc.replace(':', '_')}.har"
+
+    # Create database record
+    har_file = HARFile(
+        job_id=job_id,
+        filename=filename,
+        s3_key="",  # Will be set by consumer
+        s3_bucket=settings.s3_bucket_name,
+        status="pending",
+        user_ip=user_ip,
+    )
+    db.add(har_file)
+    db.commit()
+
+    # Publish to Kafka
+    try:
+        await kafka_producer.publish_har_upload_event(
+            job_id=job_id,
+            filename=filename,
+            har_content=har_content,
+            user_ip=user_ip,
+        )
+    except Exception as e:
+        har_file.status = "failed"
+        db.commit()
+        raise HTTPException(status_code=500, detail=f"Failed to publish event: {e}")
+
+    return URLToHARResponse(
+        job_id=str(job_id),
+        message=f"URL converted to HAR successfully and queued for processing",
         status="pending",
     )
 

@@ -91,10 +91,9 @@ export function ExecutionResults() {
 
             {/* Tabbed Content */}
             <Tabs defaultValue="body" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="body">Response Body</TabsTrigger>
                 <TabsTrigger value="headers">Headers</TabsTrigger>
-                <TabsTrigger value="timing">Timing</TabsTrigger>
               </TabsList>
 
               <TabsContent value="body" className="mt-4">

@@ -6,7 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, FileText, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Upload, FileText, CheckCircle2, XCircle, Loader2, Link } from "lucide-react";
 import { api } from "@/lib/api";
 import { useJobStatus } from "@/lib/hooks";
 import { useAppStore } from "@/lib/store";
@@ -14,6 +16,7 @@ import { useAppStore } from "@/lib/store";
 export function HarUploader() {
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [url, setUrl] = useState("");
 
   const { jobId, fileName, totalRequests, setJobId } = useAppStore();
   const { data: status, error: statusError } = useJobStatus(jobId);
@@ -40,6 +43,36 @@ export function HarUploader() {
       setIsUploading(false);
     }
   }, [setJobId]);
+
+  const handleUrlSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!url.trim()) {
+      setError("Please enter a URL");
+      return;
+    }
+
+    // Basic URL validation
+    try {
+      new URL(url);
+    } catch {
+      setError("Please enter a valid URL (including http:// or https://)");
+      return;
+    }
+
+    setError(null);
+    setIsUploading(true);
+
+    try {
+      const result = await api.urlToHar(url);
+      setJobId(result.job_id, url, 0);
+      setUrl("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "URL conversion failed");
+    } finally {
+      setIsUploading(false);
+    }
+  }, [url, setJobId]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -77,42 +110,90 @@ export function HarUploader() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Upload className="h-5 w-5" />
-          Step 1: Upload HAR File
+          Step 1: Upload HAR File or Enter URL
         </CardTitle>
         <CardDescription>
-          Upload a .har file exported from your browser's Network tab
+          Upload a .har file or enter a URL to capture network traffic
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {!jobId ? (
-          <div
-            {...getRootProps()}
-            className={`
-              border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
-              transition-colors
-              ${isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25"}
-              ${isUploading ? "opacity-50 pointer-events-none" : ""}
-            `}
-          >
-            <input {...getInputProps()} />
-            <div className="flex flex-col items-center gap-2">
-              {isUploading ? (
-                <>
-                  <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Uploading...</p>
-                </>
-              ) : (
-                <>
-                  <FileText className="h-10 w-10 text-muted-foreground" />
-                  <p className="text-sm">
-                    {isDragActive
-                      ? "Drop the .har file here"
-                      : "Drag & drop a .har file, or click to browse"}
+          <Tabs defaultValue="file" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="file" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Upload File
+              </TabsTrigger>
+              <TabsTrigger value="url" className="flex items-center gap-2">
+                <Link className="h-4 w-4" />
+                Enter URL
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="file" className="mt-4">
+              <div
+                {...getRootProps()}
+                className={`
+                  border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
+                  transition-colors
+                  ${isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25"}
+                  ${isUploading ? "opacity-50 pointer-events-none" : ""}
+                `}
+              >
+                <input {...getInputProps()} />
+                <div className="flex flex-col items-center gap-2">
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">Processing...</p>
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-10 w-10 text-muted-foreground" />
+                      <p className="text-sm">
+                        {isDragActive
+                          ? "Drop the .har file here"
+                          : "Drag & drop a .har file, or click to browse"}
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+            <TabsContent value="url" className="mt-4">
+              <form onSubmit={handleUrlSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Input
+                    type="url"
+                    placeholder="https://example.com"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    disabled={isUploading}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Enter a URL to load it in a browser and capture all network requests
                   </p>
-                </>
-              )}
-            </div>
-          </div>
+                </div>
+                <Button
+                  type="submit"
+                  disabled={isUploading || !url.trim()}
+                  className="w-full"
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Converting URL to HAR...
+                    </>
+                  ) : (
+                    <>
+                      <Link className="h-4 w-4 mr-2" />
+                      Convert URL to HAR
+                    </>
+                  )}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
         ) : (
           <div className="space-y-3">
             <div className="flex items-center justify-between p-4 border rounded-lg">
