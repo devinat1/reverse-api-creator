@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 class RequestExecutionError(Exception):
     """Custom exception for request execution errors."""
+
     pass
 
 
@@ -66,140 +67,166 @@ class RequestExecutor:
         # HTTP Status Code Errors
         if status_code:
             if status_code == 400:
-                error_info.update({
-                    "type": "bad_request",
-                    "message": "Bad request - invalid parameters",
-                    "suggestions": [
-                        "Check that all required parameters are provided",
-                        "Verify parameter values are in the correct format",
-                        "Review the API documentation for parameter requirements",
-                    ],
-                })
+                error_info.update(
+                    {
+                        "type": "bad_request",
+                        "message": "Bad request - invalid parameters",
+                        "suggestions": [
+                            "Check that all required parameters are provided",
+                            "Verify parameter values are in the correct format",
+                            "Review the API documentation for parameter requirements",
+                        ],
+                    }
+                )
             elif status_code == 401:
-                error_info.update({
-                    "type": "authentication_error",
-                    "message": "Authentication failed",
-                    "suggestions": [
-                        "Check your Authorization header is set correctly",
-                        "Verify your API key or token is valid",
-                        "Ensure the token hasn't expired",
-                    ],
-                })
+                error_info.update(
+                    {
+                        "type": "authentication_error",
+                        "message": "Authentication failed",
+                        "suggestions": [
+                            "Check your Authorization header is set correctly",
+                            "Verify your API key or token is valid",
+                            "Ensure the token hasn't expired",
+                        ],
+                    }
+                )
             elif status_code == 403:
-                error_info.update({
-                    "type": "authorization_error",
-                    "message": "Access forbidden - insufficient permissions",
-                    "suggestions": [
-                        "Verify you have permission to access this resource",
-                        "Check if your API key has the required scopes",
-                        "Ensure your account has the necessary privileges",
-                    ],
-                })
+                error_info.update(
+                    {
+                        "type": "authorization_error",
+                        "message": "Access forbidden - insufficient permissions",
+                        "suggestions": [
+                            "Verify you have permission to access this resource",
+                            "Check if your API key has the required scopes",
+                            "Ensure your account has the necessary privileges",
+                        ],
+                    }
+                )
             elif status_code == 404:
-                error_info.update({
-                    "type": "not_found",
-                    "message": "Resource not found",
-                    "suggestions": [
-                        "Check that the URL is correct",
-                        "Verify the resource ID exists",
-                        "Ensure the endpoint path is valid",
-                    ],
-                })
+                error_info.update(
+                    {
+                        "type": "not_found",
+                        "message": "Resource not found",
+                        "suggestions": [
+                            "Check that the URL is correct",
+                            "Verify the resource ID exists",
+                            "Ensure the endpoint path is valid",
+                        ],
+                    }
+                )
             elif status_code == 429:
-                error_info.update({
-                    "type": "rate_limit_error",
-                    "message": "Rate limit exceeded",
-                    "suggestions": [
-                        "Wait before making another request",
-                        "Check the Retry-After header for wait time",
-                        "Consider implementing exponential backoff",
-                    ],
-                })
+                error_info.update(
+                    {
+                        "type": "rate_limit_error",
+                        "message": "Rate limit exceeded",
+                        "suggestions": [
+                            "Wait before making another request",
+                            "Check the Retry-After header for wait time",
+                            "Consider implementing exponential backoff",
+                        ],
+                    }
+                )
             elif 400 <= status_code < 500:
-                error_info.update({
-                    "type": "client_error",
-                    "message": f"Client error: {status_code}",
-                    "suggestions": [
-                        "Review the request parameters and headers",
-                        "Check the API documentation",
-                    ],
-                })
+                error_info.update(
+                    {
+                        "type": "client_error",
+                        "message": f"Client error: {status_code}",
+                        "suggestions": [
+                            "Review the request parameters and headers",
+                            "Check the API documentation",
+                        ],
+                    }
+                )
             elif 500 <= status_code < 600:
-                error_info.update({
-                    "type": "server_error",
-                    "message": f"Server error: {status_code}",
-                    "suggestions": [
-                        "The server is experiencing issues",
-                        "Try again later",
-                        "Contact the API provider if the issue persists",
-                    ],
-                })
+                error_info.update(
+                    {
+                        "type": "server_error",
+                        "message": f"Server error: {status_code}",
+                        "suggestions": [
+                            "The server is experiencing issues",
+                            "Try again later",
+                            "Contact the API provider if the issue persists",
+                        ],
+                    }
+                )
 
         # Network Errors
         elif isinstance(error, httpx.TimeoutException):
-            error_info.update({
-                "type": "timeout_error",
-                "message": "Request timeout",
-                "details": str(error),
-                "suggestions": [
-                    "The server took too long to respond",
-                    "Try increasing the timeout value",
-                    "Check if the server is online and responsive",
-                ],
-            })
+            error_info.update(
+                {
+                    "type": "timeout_error",
+                    "message": "Request timeout",
+                    "details": str(error),
+                    "suggestions": [
+                        "The server took too long to respond",
+                        "Try increasing the timeout value",
+                        "Check if the server is online and responsive",
+                    ],
+                }
+            )
         elif isinstance(error, httpx.ConnectError):
-            error_info.update({
-                "type": "connection_error",
-                "message": "Connection failed",
-                "details": str(error),
-                "suggestions": [
-                    "Check your internet connection",
-                    "Verify the server URL is correct",
-                    "Ensure the server is online",
-                ],
-            })
+            error_info.update(
+                {
+                    "type": "connection_error",
+                    "message": "Connection failed",
+                    "details": str(error),
+                    "suggestions": [
+                        "Check your internet connection",
+                        "Verify the server URL is correct",
+                        "Ensure the server is online",
+                    ],
+                }
+            )
         elif isinstance(error, httpx.ConnectTimeout):
-            error_info.update({
-                "type": "connection_timeout",
-                "message": "Connection timeout",
-                "details": str(error),
-                "suggestions": [
-                    "The server took too long to establish a connection",
-                    "Check if the server is reachable",
-                    "Verify there are no firewall issues",
-                ],
-            })
+            error_info.update(
+                {
+                    "type": "connection_timeout",
+                    "message": "Connection timeout",
+                    "details": str(error),
+                    "suggestions": [
+                        "The server took too long to establish a connection",
+                        "Check if the server is reachable",
+                        "Verify there are no firewall issues",
+                    ],
+                }
+            )
         elif isinstance(error, httpx.RemoteProtocolError):
-            error_info.update({
-                "type": "protocol_error",
-                "message": "Protocol error",
-                "details": str(error),
-                "suggestions": [
-                    "The server sent an invalid response",
-                    "This may be a server-side issue",
-                    "Contact the API provider",
-                ],
-            })
+            error_info.update(
+                {
+                    "type": "protocol_error",
+                    "message": "Protocol error",
+                    "details": str(error),
+                    "suggestions": [
+                        "The server sent an invalid response",
+                        "This may be a server-side issue",
+                        "Contact the API provider",
+                    ],
+                }
+            )
         elif isinstance(error, httpx.TooManyRedirects):
-            error_info.update({
-                "type": "redirect_error",
-                "message": "Too many redirects",
-                "details": str(error),
-                "suggestions": [
-                    "The server is redirecting too many times",
-                    "Check the URL for redirect loops",
-                ],
-            })
+            error_info.update(
+                {
+                    "type": "redirect_error",
+                    "message": "Too many redirects",
+                    "details": str(error),
+                    "suggestions": [
+                        "The server is redirecting too many times",
+                        "Check the URL for redirect loops",
+                    ],
+                }
+            )
         elif isinstance(error, (httpx.InvalidURL, httpx.UnsupportedProtocol)):
-            error_info.update({
-                "type": "invalid_url",
-                "message": "Invalid URL",
-                "details": str(error),
-                "suggestions": [
-                    "Check the URL format",
-                    "Ensure the protocol (http/https) is correct",
-                ],
-            })
+            error_info.update(
+                {
+                    "type": "invalid_url",
+                    "message": "Invalid URL",
+                    "details": str(error),
+                    "suggestions": [
+                        "Check the URL format",
+                        "Ensure the protocol (http/https) is correct",
+                    ],
+                }
+            )
 
         return error_info
 
@@ -248,14 +275,16 @@ class RequestExecutor:
         # Note: We exclude accept-encoding because httpx handles compression automatically.
         # Including it manually breaks httpx's auto-decompression.
         headers = {
-            k: v for k, v in (request.request_headers or {}).items()
-            if not k.startswith(':') and k.lower() != 'accept-encoding'
+            k: v
+            for k, v in (request.request_headers or {}).items()
+            if not k.startswith(":") and k.lower() != "accept-encoding"
         }
         if overrides.get("headers"):
             # Also filter overrides
             filtered_overrides = {
-                k: v for k, v in overrides["headers"].items()
-                if not k.startswith(':') and k.lower() != 'accept-encoding'
+                k: v
+                for k, v in overrides["headers"].items()
+                if not k.startswith(":") and k.lower() != "accept-encoding"
             }
             headers.update(filtered_overrides)
 
@@ -287,29 +316,39 @@ class RequestExecutor:
                 execution_time_ms = int((time.time() - start_time) * 1000)
 
                 # Log response encoding for debugging
-                content_encoding = response.headers.get('content-encoding', 'none')
-                logger.info(f"Response content-encoding: {content_encoding}, status: {response.status_code}")
+                content_encoding = response.headers.get("content-encoding", "none")
+                logger.info(
+                    f"Response content-encoding: {content_encoding}, status: {response.status_code}"
+                )
 
                 # Get response body as text (httpx automatically decompresses)
                 try:
                     # response.text automatically handles decompression and encoding
                     response_body = response.text
-                    response_size = len(response_body.encode('utf-8'))
+                    response_size = len(response_body.encode("utf-8"))
                 except Exception as e:
-                    logger.error(f"Failed to decode response as text: {e}", exc_info=True)
+                    logger.error(
+                        f"Failed to decode response as text: {e}", exc_info=True
+                    )
                     # Try to decode raw content as UTF-8 with error handling
                     try:
-                        response_body = response.content.decode('utf-8', errors='replace')
+                        response_body = response.content.decode(
+                            "utf-8", errors="replace"
+                        )
                         response_size = len(response.content)
                     except Exception as e2:
                         logger.error(f"Failed to decode response content: {e2}")
-                        content_type = response.headers.get('content-type', 'unknown')
+                        content_type = response.headers.get("content-type", "unknown")
                         response_size = len(response.content)
-                        response_body = f"<binary data: {content_type}, {response_size} bytes>"
+                        response_body = (
+                            f"<binary data: {content_type}, {response_size} bytes>"
+                        )
 
                 # Check response size
                 if response_size > self.max_response_size:
-                    logger.warning(f"Response size {response_size} exceeds max {self.max_response_size}")
+                    logger.warning(
+                        f"Response size {response_size} exceeds max {self.max_response_size}"
+                    )
 
                 # Success response
                 return {
@@ -340,7 +379,7 @@ class RequestExecutor:
             except Exception as err:
                 logger.warning(f"Failed to decode error response as text: {err}")
                 try:
-                    error_body = e.response.content.decode('utf-8', errors='replace')
+                    error_body = e.response.content.decode("utf-8", errors="replace")
                 except:
                     error_body = f"<binary error response>"
 

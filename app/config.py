@@ -4,7 +4,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Application configuration settings."""
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
 
     # Database
     database_url: str = "postgresql://postgres:postgres@localhost:5432/cloudcruise"
@@ -48,7 +50,9 @@ class Settings(BaseSettings):
     # URL to HAR Conversion
     enable_url_to_har: bool = True
     url_to_har_timeout: int = 30  # Timeout for page load in seconds
-    url_to_har_blocked_domains: str = ""  # Comma-separated list of blocked domains for URL conversion
+    url_to_har_blocked_domains: str = (
+        ""  # Comma-separated list of blocked domains for URL conversion
+    )
     url_to_har_wait_until: str = "networkidle"  # load, domcontentloaded, networkidle
 
 

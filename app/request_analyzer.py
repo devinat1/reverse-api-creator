@@ -118,35 +118,47 @@ class RequestAnalyzer:
         # Extract query parameters
         if request.query_params:
             for name, value in request.query_params.items():
-                parameters["query"].append({
-                    "name": name,
-                    "value": value,
-                })
+                parameters["query"].append(
+                    {
+                        "name": name,
+                        "value": value,
+                    }
+                )
 
         # Extract headers (mask sensitive ones)
         if request.request_headers:
             sensitive_headers = [
-                "authorization", "cookie", "x-api-key", "api-key",
-                "apikey", "x-apikey", "token", "x-auth-token"
+                "authorization",
+                "cookie",
+                "x-api-key",
+                "api-key",
+                "apikey",
+                "x-apikey",
+                "token",
+                "x-auth-token",
             ]
 
             for name, value in request.request_headers.items():
-                is_auth = name.lower() in sensitive_headers or \
-                         any(keyword in name.lower() for keyword in ["auth", "token", "key"])
+                is_auth = name.lower() in sensitive_headers or any(
+                    keyword in name.lower() for keyword in ["auth", "token", "key"]
+                )
 
-                parameters["headers"].append({
-                    "name": name,
-                    "value": "***" if is_auth else value,
-                    "is_auth": is_auth,
-                })
+                parameters["headers"].append(
+                    {
+                        "name": name,
+                        "value": "***" if is_auth else value,
+                        "is_auth": is_auth,
+                    }
+                )
 
         # Extract body parameters
         if request.request_body:
             # Determine body type from content-type header
             content_type = None
             if request.request_headers:
-                content_type = request.request_headers.get("content-type") or \
-                              request.request_headers.get("Content-Type")
+                content_type = request.request_headers.get(
+                    "content-type"
+                ) or request.request_headers.get("Content-Type")
 
             if content_type:
                 content_type_lower = content_type.lower()
@@ -162,7 +174,9 @@ class RequestAnalyzer:
                     parameters["body_type"] = "form"
                     try:
                         parsed = parse_qs(request.request_body)
-                        parameters["body"] = {k: v[0] if len(v) == 1 else v for k, v in parsed.items()}
+                        parameters["body"] = {
+                            k: v[0] if len(v) == 1 else v for k, v in parsed.items()
+                        }
                     except:
                         parameters["body"] = request.request_body
 

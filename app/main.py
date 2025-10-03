@@ -3,7 +3,14 @@ from contextlib import asynccontextmanager
 from uuid import UUID, uuid4
 
 from typing import Optional
-from fastapi import FastAPI, File, UploadFile, Depends, HTTPException, Request as FastAPIRequest
+from fastapi import (
+    FastAPI,
+    File,
+    UploadFile,
+    Depends,
+    HTTPException,
+    Request as FastAPIRequest,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
@@ -436,7 +443,9 @@ async def generate_curl(
     matched_request = db.query(Request).filter(Request.id == request_id).first()
 
     if not matched_request:
-        raise HTTPException(status_code=500, detail="Matched request not found in database")
+        raise HTTPException(
+            status_code=500, detail="Matched request not found in database"
+        )
 
     # Generate curl command
     curl_data = CurlGenerator.generate_curl_with_metadata(matched_request)
@@ -531,7 +540,9 @@ async def execute_request(
     # Parse blocked domains
     blocked_domains = []
     if settings.blocked_domains:
-        blocked_domains = [d.strip() for d in settings.blocked_domains.split(",") if d.strip()]
+        blocked_domains = [
+            d.strip() for d in settings.blocked_domains.split(",") if d.strip()
+        ]
 
     # Create executor
     timeout = body.timeout or settings.request_execution_timeout

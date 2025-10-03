@@ -23,17 +23,23 @@ class HARFile(Base):
     __tablename__ = "har_files"
 
     id = Column(Integer, primary_key=True, index=True)
-    job_id = Column(UUID(as_uuid=True), unique=True, default=uuid4, nullable=False, index=True)
+    job_id = Column(
+        UUID(as_uuid=True), unique=True, default=uuid4, nullable=False, index=True
+    )
     filename = Column(String, nullable=False)
     s3_key = Column(String, nullable=False)
     s3_bucket = Column(String, nullable=False)
-    status = Column(String, default="pending", nullable=False, index=True)  # pending, processing, completed, failed
+    status = Column(
+        String, default="pending", nullable=False, index=True
+    )  # pending, processing, completed, failed
     upload_timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
     total_requests = Column(Integer, default=0)
     user_ip = Column(String, nullable=True)
 
     # Relationship
-    requests = relationship("Request", back_populates="har_file", cascade="all, delete-orphan")
+    requests = relationship(
+        "Request", back_populates="har_file", cascade="all, delete-orphan"
+    )
 
 
 class Request(Base):
@@ -42,7 +48,12 @@ class Request(Base):
     __tablename__ = "requests"
 
     id = Column(Integer, primary_key=True, index=True)
-    har_file_id = Column(Integer, ForeignKey("har_files.id", ondelete="CASCADE"), nullable=False, index=True)
+    har_file_id = Column(
+        Integer,
+        ForeignKey("har_files.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
 
     # Searchable fields
     url = Column(Text, nullable=False)
@@ -72,8 +83,23 @@ class Request(Base):
 
     # Indexes for full-text search
     __table_args__ = (
-        Index("idx_request_url_gin", url, postgresql_using="gin", postgresql_ops={"url": "gin_trgm_ops"}),
-        Index("idx_request_domain_gin", domain, postgresql_using="gin", postgresql_ops={"domain": "gin_trgm_ops"}),
-        Index("idx_request_path_gin", path, postgresql_using="gin", postgresql_ops={"path": "gin_trgm_ops"}),
+        Index(
+            "idx_request_url_gin",
+            url,
+            postgresql_using="gin",
+            postgresql_ops={"url": "gin_trgm_ops"},
+        ),
+        Index(
+            "idx_request_domain_gin",
+            domain,
+            postgresql_using="gin",
+            postgresql_ops={"domain": "gin_trgm_ops"},
+        ),
+        Index(
+            "idx_request_path_gin",
+            path,
+            postgresql_using="gin",
+            postgresql_ops={"path": "gin_trgm_ops"},
+        ),
         Index("idx_request_query_params_gin", query_params, postgresql_using="gin"),
     )

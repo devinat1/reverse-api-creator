@@ -38,8 +38,10 @@ class LLMService:
             parts = [f"{c['index']}: {c['domain']} - {c['method']} {c['path']}"]
 
             # Add content type if available and relevant
-            if c.get('content_type'):
-                content_type = c['content_type'].split(';')[0].strip()  # Remove charset etc.
+            if c.get("content_type"):
+                content_type = (
+                    c["content_type"].split(";")[0].strip()
+                )  # Remove charset etc.
                 if content_type:
                     parts.append(f"[{content_type}]")
 
@@ -73,12 +75,17 @@ Return JSON with the index of the best match:
             data = json.loads(response_text)
             index = data.get("index")
 
-            if index is not None and isinstance(index, int) and 0 <= index < num_candidates:
+            if (
+                index is not None
+                and isinstance(index, int)
+                and 0 <= index < num_candidates
+            ):
                 return index
 
         except json.JSONDecodeError:
             # Try to extract number from text
             import re
+
             match = re.search(r'"?index"?\s*:\s*(\d+)', response_text)
             if match:
                 index = int(match.group(1))

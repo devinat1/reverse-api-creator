@@ -25,18 +25,71 @@ class RequestFilter:
         """
         # Remove common words and extract meaningful keywords
         common_words = {
-            "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for",
-            "of", "with", "from", "by", "about", "as", "into", "like", "through",
-            "after", "over", "between", "out", "against", "during", "without",
-            "before", "under", "around", "among", "api", "endpoint", "request",
-            "return", "get", "fetch", "that", "which", "what", "is", "are", "was",
+            "the",
+            "a",
+            "an",
+            "and",
+            "or",
+            "but",
+            "in",
+            "on",
+            "at",
+            "to",
+            "for",
+            "of",
+            "with",
+            "from",
+            "by",
+            "about",
+            "as",
+            "into",
+            "like",
+            "through",
+            "after",
+            "over",
+            "between",
+            "out",
+            "against",
+            "during",
+            "without",
+            "before",
+            "under",
+            "around",
+            "among",
+            "api",
+            "endpoint",
+            "request",
+            "return",
+            "get",
+            "fetch",
+            "that",
+            "which",
+            "what",
+            "is",
+            "are",
+            "was",
             # Additional technical/file-related terms to exclude
-            "har", "file", "files", "com", "org", "net", "io", "dev", "app",
-            "www", "http", "https", "url", "domain", "path", "json", "xml",
+            "har",
+            "file",
+            "files",
+            "com",
+            "org",
+            "net",
+            "io",
+            "dev",
+            "app",
+            "www",
+            "http",
+            "https",
+            "url",
+            "domain",
+            "path",
+            "json",
+            "xml",
         }
 
         # Extract words (alphanumeric sequences)
-        words = re.findall(r'\b\w+\b', prompt.lower())
+        words = re.findall(r"\b\w+\b", prompt.lower())
 
         # Filter out common words, short words, and domain extensions
         keywords = []
@@ -45,7 +98,17 @@ class RequestFilter:
             if w in common_words or len(w) <= 2:
                 continue
             # Skip if looks like a domain extension (3-4 letter extensions after a dot reference)
-            if len(w) <= 4 and w in ["com", "org", "net", "edu", "gov", "io", "co", "uk", "de"]:
+            if len(w) <= 4 and w in [
+                "com",
+                "org",
+                "net",
+                "edu",
+                "gov",
+                "io",
+                "co",
+                "uk",
+                "de",
+            ]:
                 continue
             keywords.append(w)
 
@@ -66,7 +129,7 @@ class RequestFilter:
         methods = ["get", "post", "put", "delete", "patch", "head", "options"]
 
         for method in methods:
-            if re.search(r'\b' + method + r'\b', prompt_lower):
+            if re.search(r"\b" + method + r"\b", prompt_lower):
                 return method.upper()
 
         return None
@@ -89,10 +152,17 @@ class RequestFilter:
         if req.domain:
             domain_lower = req.domain.lower()
             # Check if domain starts with "api." or contains "api-"
-            if domain_lower.startswith("api.") or ".api." in domain_lower or domain_lower.startswith("api-"):
+            if (
+                domain_lower.startswith("api.")
+                or ".api." in domain_lower
+                or domain_lower.startswith("api-")
+            ):
                 score += 15.0
             # Boost for other API-like domain keywords
-            elif any(keyword in domain_lower for keyword in ["gateway", "service", "rest", "graphql"]):
+            elif any(
+                keyword in domain_lower
+                for keyword in ["gateway", "service", "rest", "graphql"]
+            ):
                 score += 10.0
 
         # Boost for JSON content type (typical for APIs)
@@ -108,18 +178,51 @@ class RequestFilter:
             score += 3.0
             # Extra boost if query params contain API-like keywords
             query_str = str(req.query_params).lower()
-            if any(api_term in query_str for api_term in ["id", "format", "api", "key", "token", "timestamp", "limit", "offset"]):
+            if any(
+                api_term in query_str
+                for api_term in [
+                    "id",
+                    "format",
+                    "api",
+                    "key",
+                    "token",
+                    "timestamp",
+                    "limit",
+                    "offset",
+                ]
+            ):
                 score += 5.0
 
         # Strong penalty for static assets
         if req.path:
-            static_extensions = [".jpg", ".jpeg", ".png", ".gif", ".css", ".js", ".ico", ".svg", ".woff", ".ttf", ".woff2", ".eot"]
+            static_extensions = [
+                ".jpg",
+                ".jpeg",
+                ".png",
+                ".gif",
+                ".css",
+                ".js",
+                ".ico",
+                ".svg",
+                ".woff",
+                ".ttf",
+                ".woff2",
+                ".eot",
+            ]
             if any(req.path.lower().endswith(ext) for ext in static_extensions):
                 score -= 30.0
 
         # Strong penalty for static resource paths
         if req.path:
-            static_paths = ["/static/", "/bundle/", "/assets/", "/dist/", "/public/", "/_next/", "/webpack/"]
+            static_paths = [
+                "/static/",
+                "/bundle/",
+                "/assets/",
+                "/dist/",
+                "/public/",
+                "/_next/",
+                "/webpack/",
+            ]
             if any(static_path in req.path.lower() for static_path in static_paths):
                 score -= 30.0
 
@@ -145,9 +248,9 @@ class RequestFilter:
         # Boost for paths that look like API endpoints (contain numbers, IDs, specific patterns)
         if req.path:
             # Check for API-like path patterns
-            if re.search(r'/v\d+/', req.path):  # versioned API (e.g., /v1/, /v2/)
+            if re.search(r"/v\d+/", req.path):  # versioned API (e.g., /v1/, /v2/)
                 score += 3.0
-            if re.search(r'/api/', req.path, re.IGNORECASE):  # explicit /api/ in path
+            if re.search(r"/api/", req.path, re.IGNORECASE):  # explicit /api/ in path
                 score += 3.0
 
         return score
@@ -211,7 +314,9 @@ class RequestFilter:
         logger.info(f"Filtering with keywords: {keywords}")
         logger.info(f"Top {min(5, len(scored_results))} scored results:")
         for req, score in scored_results[:5]:
-            logger.info(f"  Score: {score:6.1f} | {req.method:6s} | {req.domain:30s} | {req.path[:60]}")
+            logger.info(
+                f"  Score: {score:6.1f} | {req.method:6s} | {req.domain:30s} | {req.path[:60]}"
+            )
 
         # Return top results
         return [req for req, score in scored_results[:max_results]]
@@ -239,13 +344,15 @@ class RequestFilter:
                     params_str += "..."
                 path_with_params = f"{req.path}?{params_str}"
 
-            candidates.append({
-                "index": idx,
-                "method": req.method,
-                "domain": req.domain,  # Include domain for better LLM matching
-                "path": path_with_params,
-                "content_type": req.content_type,  # Include content type
-                "request_id": req.id,  # Store for later retrieval
-            })
+            candidates.append(
+                {
+                    "index": idx,
+                    "method": req.method,
+                    "domain": req.domain,  # Include domain for better LLM matching
+                    "path": path_with_params,
+                    "content_type": req.content_type,  # Include content type
+                    "request_id": req.id,  # Store for later retrieval
+                }
+            )
 
         return candidates

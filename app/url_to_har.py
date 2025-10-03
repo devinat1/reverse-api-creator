@@ -8,7 +8,10 @@ import tempfile
 from typing import Optional
 from urllib.parse import urlparse
 
-from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
+from playwright.async_api import (
+    async_playwright,
+    TimeoutError as PlaywrightTimeoutError,
+)
 
 from app.config import settings
 
@@ -30,7 +33,10 @@ class URLToHARConverter:
         try:
             parsed = urlparse(url)
             if not parsed.scheme or not parsed.netloc:
-                return False, "Invalid URL format. Must include protocol (http/https) and domain."
+                return (
+                    False,
+                    "Invalid URL format. Must include protocol (http/https) and domain.",
+                )
 
             # Only allow http and https
             if parsed.scheme not in ["http", "https"]:
@@ -84,7 +90,9 @@ class URLToHARConverter:
         try:
             # Create temporary file
             har_fd, har_file_path = tempfile.mkstemp(suffix=".har")
-            os.close(har_fd)  # Close the file descriptor, Playwright will write to the path
+            os.close(
+                har_fd
+            )  # Close the file descriptor, Playwright will write to the path
 
             async with async_playwright() as p:
                 # Launch browser in headless mode
@@ -108,7 +116,8 @@ class URLToHARConverter:
                     await page.goto(
                         url,
                         wait_until=wait_until,
-                        timeout=settings.url_to_har_timeout * 1000,  # Convert to milliseconds
+                        timeout=settings.url_to_har_timeout
+                        * 1000,  # Convert to milliseconds
                     )
 
                     # Give a small additional delay to ensure all requests are captured

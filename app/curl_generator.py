@@ -30,10 +30,10 @@ class CurlGenerator:
             headers_to_add = []
             for name, value in request.request_headers.items():
                 # Skip HTTP/2 pseudo-headers (start with ':')
-                if name.startswith(':'):
+                if name.startswith(":"):
                     continue
                 # Skip accept-encoding (causes compressed/binary responses in curl)
-                if name.lower() == 'accept-encoding':
+                if name.lower() == "accept-encoding":
                     continue
                 headers_to_add.append((name, value))
 

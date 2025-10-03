@@ -40,14 +40,19 @@ class HARParser:
         # Parse query parameters
         query_params = {}
         if parsed_url.query:
-            query_params = {k: v[0] if len(v) == 1 else v for k, v in parse_qs(parsed_url.query).items()}
+            query_params = {
+                k: v[0] if len(v) == 1 else v
+                for k, v in parse_qs(parsed_url.query).items()
+            }
 
         # Extract timestamp
         started_datetime = entry.get("startedDateTime")
         timestamp = None
         if started_datetime:
             try:
-                timestamp = datetime.fromisoformat(started_datetime.replace("Z", "+00:00"))
+                timestamp = datetime.fromisoformat(
+                    started_datetime.replace("Z", "+00:00")
+                )
             except (ValueError, AttributeError):
                 pass
 
@@ -132,7 +137,9 @@ class HARParser:
         # Include query params if they exist
         if query_params:
             # Show first few query params
-            params_str = "&".join([f"{k}={v}" for k, v in list(query_params.items())[:2]])
+            params_str = "&".join(
+                [f"{k}={v}" for k, v in list(query_params.items())[:2]]
+            )
             if len(query_params) > 2:
                 params_str += "..."
             return f"{method} {path}?{params_str}"
