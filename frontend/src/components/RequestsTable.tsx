@@ -41,9 +41,6 @@ export function RequestsTable() {
     fetchRequests();
   }, [jobId, status?.status]);
 
-  // Don't render if no job ID or not completed
-  if (!jobId || status?.status !== "completed") return null;
-
   // Helper to get status color
   const getStatusColor = (statusCode: number | null) => {
     if (!statusCode) return "bg-gray-500";
@@ -77,27 +74,63 @@ export function RequestsTable() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading && (
+        {/* No job uploaded yet */}
+        {!jobId && (
+          <div className="text-center py-12 text-muted-foreground">
+            <Database className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p className="text-sm">Upload a HAR file to see discovered requests</p>
+          </div>
+        )}
+
+        {/* Job is processing */}
+        {jobId && status?.status === "processing" && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <span className="ml-2 text-sm text-muted-foreground">Processing HAR file...</span>
+          </div>
+        )}
+
+        {/* Job is pending */}
+        {jobId && status?.status === "pending" && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <span className="ml-2 text-sm text-muted-foreground">Waiting to process...</span>
+          </div>
+        )}
+
+        {/* Job failed */}
+        {jobId && status?.status === "failed" && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>HAR file processing failed</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Job completed - loading requests */}
+        {jobId && status?.status === "completed" && isLoading && (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             <span className="ml-2 text-sm text-muted-foreground">Loading requests...</span>
           </div>
         )}
 
-        {error && (
+        {/* Error loading requests */}
+        {jobId && status?.status === "completed" && error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
-        {!isLoading && !error && requests.length === 0 && (
+        {/* No requests found */}
+        {jobId && status?.status === "completed" && !isLoading && !error && requests.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">
-            No requests found
+            No requests found in the HAR file
           </div>
         )}
 
-        {!isLoading && !error && requests.length > 0 && (
+        {/* Requests table */}
+        {jobId && status?.status === "completed" && !isLoading && !error && requests.length > 0 && (
           <div className="space-y-4">
             <div className="text-sm text-muted-foreground">
               Found {requests.length} request{requests.length !== 1 ? "s" : ""}

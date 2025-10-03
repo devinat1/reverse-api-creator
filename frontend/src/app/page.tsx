@@ -17,16 +17,16 @@ export default function Home() {
 
         {/* Main Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-          {/* Left Column - Requests Table */}
-          <div className="lg:sticky lg:top-6">
-            <RequestsTable />
-          </div>
-
-          {/* Right Column - Other Components */}
+          {/* Left Column - Workflow Components */}
           <div className="space-y-6">
             <ApiDescriptionInput />
             <CurlDisplay />
             <ExecutionResults />
+          </div>
+
+          {/* Right Column - Requests Table */}
+          <div className="lg:sticky lg:top-6">
+            <RequestsTable />
           </div>
         </div>
       </div>
