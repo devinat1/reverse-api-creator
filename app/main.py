@@ -220,6 +220,66 @@ async def get_status(job_id: str, db: Session = Depends(get_db)):
     )
 
 
+class RequestListItem(BaseModel):
+    id: int
+    method: str
+    url: str
+    domain: str
+    path: str
+    status_code: Optional[int]
+    content_type: Optional[str]
+    timestamp: Optional[str]
+    duration_ms: Optional[int]
+
+
+class RequestListResponse(BaseModel):
+    requests: list[RequestListItem]
+    total: int
+
+
+@app.get("/job/{job_id}/requests", response_model=RequestListResponse)
+async def get_job_requests(job_id: str, db: Session = Depends(get_db)):
+    """Get all requests for a specific job."""
+    try:
+        job_uuid = UUID(job_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid job_id format")
+
+    har_file = db.query(HARFile).filter(HARFile.job_id == job_uuid).first()
+
+    if not har_file:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    # Get all requests for this HAR file, ordered by timestamp
+    requests = (
+        db.query(Request)
+        .filter(Request.har_file_id == har_file.id)
+        .order_by(Request.timestamp.desc())
+        .all()
+    )
+
+    # Convert to response format
+    request_items = [
+        RequestListItem(
+            id=req.id,
+            method=req.method,
+            url=req.url,
+            domain=req.domain,
+            path=req.path,
+            status_code=req.status_code,
+            content_type=req.content_type,
+            timestamp=req.timestamp.isoformat() if req.timestamp else None,
+            duration_ms=req.duration_ms,
+        )
+        for req in requests
+    ]
+
+    return RequestListResponse(
+        requests=request_items,
+        total=len(request_items),
+    )
+
+
 @app.post("/generate-curl", response_model=GenerateCurlResponse)
 @limiter.limit(settings.rate_limit_curl_gen)
 async def generate_curl(

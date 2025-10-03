@@ -127,3 +127,20 @@ export interface ExecutionSettings {
   timeout: number;
   followRedirects: boolean;
 }
+
+export interface RequestListItem {
+  id: number;
+  method: string;
+  url: string;
+  domain: string;
+  path: string;
+  status_code: number | null;
+  content_type: string | null;
+  timestamp: string | null;
+  duration_ms: number | null;
+}
+
+export interface RequestListResponse {
+  requests: RequestListItem[];
+  total: number;
+}

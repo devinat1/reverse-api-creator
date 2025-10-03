@@ -24,13 +24,16 @@ class CurlGenerator:
         if request.method and request.method.upper() != "GET":
             lines.append(f"  -X {request.method} \\")
 
-        # Add headers (filter out HTTP/2 pseudo-headers and sort alphabetically)
+        # Add headers (filter out HTTP/2 pseudo-headers, accept-encoding, and sort alphabetically)
         if request.request_headers:
             # Filter and sort headers
             headers_to_add = []
             for name, value in request.request_headers.items():
                 # Skip HTTP/2 pseudo-headers (start with ':')
                 if name.startswith(':'):
+                    continue
+                # Skip accept-encoding (causes compressed/binary responses in curl)
+                if name.lower() == 'accept-encoding':
                     continue
                 headers_to_add.append((name, value))
 

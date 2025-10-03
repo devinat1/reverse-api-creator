@@ -244,16 +244,18 @@ class RequestExecutor:
                 },
             }
 
-        # Build headers (exclude HTTP/2 pseudo-headers)
+        # Build headers (exclude HTTP/2 pseudo-headers and accept-encoding)
+        # Note: We exclude accept-encoding because httpx handles compression automatically.
+        # Including it manually breaks httpx's auto-decompression.
         headers = {
             k: v for k, v in (request.request_headers or {}).items()
-            if not k.startswith(':')
+            if not k.startswith(':') and k.lower() != 'accept-encoding'
         }
         if overrides.get("headers"):
             # Also filter overrides
             filtered_overrides = {
                 k: v for k, v in overrides["headers"].items()
-                if not k.startswith(':')
+                if not k.startswith(':') and k.lower() != 'accept-encoding'
             }
             headers.update(filtered_overrides)
 
@@ -284,16 +286,30 @@ class RequestExecutor:
                 # Calculate execution time
                 execution_time_ms = int((time.time() - start_time) * 1000)
 
+                # Log response encoding for debugging
+                content_encoding = response.headers.get('content-encoding', 'none')
+                logger.info(f"Response content-encoding: {content_encoding}, status: {response.status_code}")
+
+                # Get response body as text (httpx automatically decompresses)
+                try:
+                    # response.text automatically handles decompression and encoding
+                    response_body = response.text
+                    response_size = len(response_body.encode('utf-8'))
+                except Exception as e:
+                    logger.error(f"Failed to decode response as text: {e}", exc_info=True)
+                    # Try to decode raw content as UTF-8 with error handling
+                    try:
+                        response_body = response.content.decode('utf-8', errors='replace')
+                        response_size = len(response.content)
+                    except Exception as e2:
+                        logger.error(f"Failed to decode response content: {e2}")
+                        content_type = response.headers.get('content-type', 'unknown')
+                        response_size = len(response.content)
+                        response_body = f"<binary data: {content_type}, {response_size} bytes>"
+
                 # Check response size
-                response_size = len(response.content)
                 if response_size > self.max_response_size:
                     logger.warning(f"Response size {response_size} exceeds max {self.max_response_size}")
-
-                # Get response body as text (handle encoding errors)
-                try:
-                    response_body = response.text
-                except:
-                    response_body = "<binary data>"
 
                 # Success response
                 return {
@@ -321,8 +337,12 @@ class RequestExecutor:
 
             try:
                 error_body = e.response.text
-            except:
-                error_body = "<binary data>"
+            except Exception as err:
+                logger.warning(f"Failed to decode error response as text: {err}")
+                try:
+                    error_body = e.response.content.decode('utf-8', errors='replace')
+                except:
+                    error_body = f"<binary error response>"
 
             error_info = self._classify_error(e, status_code=e.response.status_code)
             error_info["details"] = error_body
