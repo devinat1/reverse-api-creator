@@ -31,16 +31,25 @@ class LLMService:
         Returns:
             Formatted prompt string
         """
-        # Format candidates in minimal format
+        # Format candidates with domain, method, path, and content-type
         candidate_lines = []
         for c in candidates:
-            candidate_lines.append(f"{c['index']}: {c['method']} {c['path']}")
+            # Build candidate description
+            parts = [f"{c['index']}: {c['domain']} - {c['method']} {c['path']}"]
+
+            # Add content type if available and relevant
+            if c.get('content_type'):
+                content_type = c['content_type'].split(';')[0].strip()  # Remove charset etc.
+                if content_type:
+                    parts.append(f"[{content_type}]")
+
+            candidate_lines.append(" ".join(parts))
 
         candidates_text = "\n".join(candidate_lines)
 
         prompt = f"""Match this request: "{user_prompt}"
 
-Candidates:
+Candidates (format: index: domain - METHOD path [content-type]):
 {candidates_text}
 
 Return JSON with the index of the best match:

@@ -71,9 +71,17 @@ class HARParser:
         request_size = request.get("bodySize", 0)
         response_size = response.get("bodySize", 0)
 
-        # Extract headers
-        request_headers = {h.get("name"): h.get("value") for h in request.get("headers", [])}
-        response_headers_dict = {h.get("name"): h.get("value") for h in response_headers}
+        # Extract headers (exclude HTTP/2 pseudo-headers that start with ':')
+        request_headers = {
+            h.get("name"): h.get("value")
+            for h in request.get("headers", [])
+            if not h.get("name", "").startswith(":")
+        }
+        response_headers_dict = {
+            h.get("name"): h.get("value")
+            for h in response_headers
+            if not h.get("name", "").startswith(":")
+        }
 
         # Extract bodies
         request_body = HARParser._extract_body(request)

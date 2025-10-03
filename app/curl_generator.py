@@ -24,9 +24,21 @@ class CurlGenerator:
         if request.method and request.method.upper() != "GET":
             lines.append(f"  -X {request.method} \\")
 
-        # Add headers
+        # Add headers (filter out HTTP/2 pseudo-headers and sort alphabetically)
         if request.request_headers:
+            # Filter and sort headers
+            headers_to_add = []
             for name, value in request.request_headers.items():
+                # Skip HTTP/2 pseudo-headers (start with ':')
+                if name.startswith(':'):
+                    continue
+                headers_to_add.append((name, value))
+
+            # Sort headers alphabetically by name (case-insensitive)
+            headers_to_add.sort(key=lambda x: x[0].lower())
+
+            # Add sorted headers
+            for name, value in headers_to_add:
                 # Escape single quotes in header values
                 escaped_value = value.replace("'", "'\\''")
                 lines.append(f"  -H '{name}: {escaped_value}' \\")

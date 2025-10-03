@@ -27,13 +27,24 @@ class RequestFilter:
             "after", "over", "between", "out", "against", "during", "without",
             "before", "under", "around", "among", "api", "endpoint", "request",
             "return", "get", "fetch", "that", "which", "what", "is", "are", "was",
+            # Additional technical/file-related terms to exclude
+            "har", "file", "files", "com", "org", "net", "io", "dev", "app",
+            "www", "http", "https", "url", "domain", "path", "json", "xml",
         }
 
         # Extract words (alphanumeric sequences)
         words = re.findall(r'\b\w+\b', prompt.lower())
 
-        # Filter out common words and short words
-        keywords = [w for w in words if w not in common_words and len(w) > 2]
+        # Filter out common words, short words, and domain extensions
+        keywords = []
+        for w in words:
+            # Skip if in common words or too short
+            if w in common_words or len(w) <= 2:
+                continue
+            # Skip if looks like a domain extension (3-4 letter extensions after a dot reference)
+            if len(w) <= 4 and w in ["com", "org", "net", "edu", "gov", "io", "co", "uk", "de"]:
+                continue
+            keywords.append(w)
 
         return keywords
 
@@ -58,6 +69,71 @@ class RequestFilter:
         return None
 
     @staticmethod
+    def _calculate_relevance_score(req: Request, keywords: List[str]) -> float:
+        """
+        Calculate relevance score for a request based on API-like characteristics.
+
+        Args:
+            req: Request object
+            keywords: List of keywords from user prompt
+
+        Returns:
+            Relevance score (higher is better)
+        """
+        score = 0.0
+
+        # Boost for JSON content type (typical for APIs)
+        if req.content_type and "json" in req.content_type.lower():
+            score += 10.0
+
+        # Boost for successful status codes
+        if req.status_code and 200 <= req.status_code < 300:
+            score += 5.0
+
+        # Boost for requests with query parameters (APIs often use them)
+        if req.query_params:
+            score += 3.0
+            # Extra boost if query params contain API-like keywords
+            query_str = str(req.query_params).lower()
+            if any(api_term in query_str for api_term in ["format", "api", "key", "token"]):
+                score += 2.0
+
+        # Penalty for static assets
+        if req.path:
+            static_extensions = [".jpg", ".jpeg", ".png", ".gif", ".css", ".js", ".ico", ".svg", ".woff", ".ttf"]
+            if any(req.path.lower().endswith(ext) for ext in static_extensions):
+                score -= 20.0
+
+        # Boost for keyword matches in URL (prioritize exact matches)
+        if keywords:
+            url_lower = req.url.lower() if req.url else ""
+            path_lower = req.path.lower() if req.path else ""
+
+            for keyword in keywords:
+                if keyword in path_lower:
+                    score += 5.0  # Path matches are most relevant
+                elif keyword in url_lower:
+                    score += 2.0  # URL matches are somewhat relevant
+
+        # Boost for GET requests (most common for data retrieval APIs)
+        if req.method and req.method.upper() == "GET":
+            score += 1.0
+
+        # Penalty for very long URLs (often tracking/analytics)
+        if req.url and len(req.url) > 200:
+            score -= 2.0
+
+        # Boost for paths that look like API endpoints (contain numbers, IDs, specific patterns)
+        if req.path:
+            # Check for API-like path patterns
+            if re.search(r'/v\d+/', req.path):  # versioned API (e.g., /v1/, /v2/)
+                score += 3.0
+            if re.search(r'/api/', req.path, re.IGNORECASE):  # explicit /api/ in path
+                score += 3.0
+
+        return score
+
+    @staticmethod
     def filter_requests(
         db: Session,
         har_file_id: int,
@@ -65,7 +141,7 @@ class RequestFilter:
         max_results: int = 10,
     ) -> List[Request]:
         """
-        Filter requests from database using keyword matching.
+        Filter requests from database using keyword matching and relevance scoring.
 
         Args:
             db: Database session
@@ -74,7 +150,7 @@ class RequestFilter:
             max_results: Maximum number of results to return
 
         Returns:
-            List of filtered Request objects
+            List of filtered Request objects, ordered by relevance
         """
         keywords = RequestFilter.extract_keywords(prompt)
         http_method = RequestFilter.detect_http_method(prompt)
@@ -98,16 +174,22 @@ class RequestFilter:
 
             query = query.filter(or_(*conditions))
 
-        # Order by relevance (prioritize shorter URLs, successful status codes)
-        query = query.order_by(
-            Request.status_code.desc().nullslast(),
-            func.length(Request.url).asc(),
-        )
+        # Get all matching results
+        results = query.all()
 
-        # Limit results
-        results = query.limit(max_results).all()
+        # If no keyword matches, fall back to all requests (let scoring sort them)
+        if not results and not keywords:
+            results = query.all()
 
-        return results
+        # Calculate relevance scores and sort
+        scored_results = [
+            (req, RequestFilter._calculate_relevance_score(req, keywords))
+            for req in results
+        ]
+        scored_results.sort(key=lambda x: x[1], reverse=True)
+
+        # Return top results
+        return [req for req, score in scored_results[:max_results]]
 
     @staticmethod
     def create_minimal_candidates(requests: List[Request]) -> List[Dict[str, Any]]:
@@ -135,7 +217,9 @@ class RequestFilter:
             candidates.append({
                 "index": idx,
                 "method": req.method,
+                "domain": req.domain,  # Include domain for better LLM matching
                 "path": path_with_params,
+                "content_type": req.content_type,  # Include content type
                 "request_id": req.id,  # Store for later retrieval
             })
 

@@ -244,10 +244,18 @@ class RequestExecutor:
                 },
             }
 
-        # Build headers
-        headers = dict(request.request_headers or {})
+        # Build headers (exclude HTTP/2 pseudo-headers)
+        headers = {
+            k: v for k, v in (request.request_headers or {}).items()
+            if not k.startswith(':')
+        }
         if overrides.get("headers"):
-            headers.update(overrides["headers"])
+            # Also filter overrides
+            filtered_overrides = {
+                k: v for k, v in overrides["headers"].items()
+                if not k.startswith(':')
+            }
+            headers.update(filtered_overrides)
 
         # Build body
         body = None
