@@ -1,0 +1,69 @@
+import json
+from typing import Dict, Any
+
+from app.models import Request
+
+
+class CurlGenerator:
+    """Service for generating curl commands from HAR request data."""
+
+    @staticmethod
+    def generate_curl_command(request: Request) -> str:
+        """
+        Generate a curl command from a Request object.
+
+        Args:
+            request: Request object from database
+
+        Returns:
+            Formatted curl command as string
+        """
+        lines = [f"curl '{request.url}' \\"]
+
+        # Add method if not GET
+        if request.method and request.method.upper() != "GET":
+            lines.append(f"  -X {request.method} \\")
+
+        # Add headers
+        if request.request_headers:
+            for name, value in request.request_headers.items():
+                # Escape single quotes in header values
+                escaped_value = value.replace("'", "'\\''")
+                lines.append(f"  -H '{name}: {escaped_value}' \\")
+
+        # Add request body if present
+        if request.request_body:
+            # Escape single quotes in body
+            escaped_body = request.request_body.replace("'", "'\\''")
+            lines.append(f"  --data-raw '{escaped_body}' \\")
+
+        # Remove trailing backslash from last line
+        if lines[-1].endswith(" \\"):
+            lines[-1] = lines[-1][:-2]
+
+        return "\n".join(lines)
+
+    @staticmethod
+    def generate_curl_with_metadata(request: Request) -> Dict[str, Any]:
+        """
+        Generate curl command with additional metadata.
+
+        Args:
+            request: Request object from database
+
+        Returns:
+            Dictionary with curl command and metadata
+        """
+        curl_command = CurlGenerator.generate_curl_command(request)
+
+        return {
+            "curl_command": curl_command,
+            "metadata": {
+                "url": request.url,
+                "method": request.method,
+                "domain": request.domain,
+                "path": request.path,
+                "status_code": request.status_code,
+                "content_type": request.content_type,
+            },
+        }
