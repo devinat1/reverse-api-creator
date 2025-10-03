@@ -33,6 +33,8 @@ class KafkaConsumerService:
             group_id=self.group_id,
             value_deserializer=lambda m: json.loads(m.decode("utf-8")),
             auto_offset_reset="earliest",
+            fetch_max_bytes=52428800,  # 50MB
+            max_partition_fetch_bytes=52428800,  # 50MB
         )
         await self.consumer.start()
         self.running = True

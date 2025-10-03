@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -11,12 +11,37 @@ import { useJobStatus } from "@/lib/hooks";
 import { api } from "@/lib/api";
 import type { RequestListItem } from "@/types";
 
+type ColumnKey = "method" | "domain" | "path" | "status" | "type" | "duration";
+
+interface ColumnWidths {
+  method: number;
+  domain: number;
+  path: number;
+  status: number;
+  type: number;
+  duration: number;
+}
+
 export function RequestsTable() {
   const { jobId } = useAppStore();
   const { data: status } = useJobStatus(jobId);
   const [requests, setRequests] = useState<RequestListItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Column widths state
+  const [columnWidths, setColumnWidths] = useState<ColumnWidths>({
+    method: 80,
+    domain: 150,
+    path: 300,
+    status: 70,
+    type: 120,
+    duration: 90,
+  });
+
+  const [resizingColumn, setResizingColumn] = useState<ColumnKey | null>(null);
+  const [startX, setStartX] = useState(0);
+  const [startWidth, setStartWidth] = useState(0);
 
   useEffect(() => {
     // Only fetch if job is completed
@@ -40,6 +65,39 @@ export function RequestsTable() {
 
     fetchRequests();
   }, [jobId, status?.status]);
+
+  // Mouse event handlers for column resizing
+  const handleMouseDown = (column: ColumnKey, e: React.MouseEvent) => {
+    e.preventDefault();
+    setResizingColumn(column);
+    setStartX(e.clientX);
+    setStartWidth(columnWidths[column]);
+  };
+
+  useEffect(() => {
+    if (!resizingColumn) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const diff = e.clientX - startX;
+      const newWidth = Math.max(50, startWidth + diff); // Minimum width of 50px
+      setColumnWidths((prev) => ({
+        ...prev,
+        [resizingColumn]: newWidth,
+      }));
+    };
+
+    const handleMouseUp = () => {
+      setResizingColumn(null);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [resizingColumn, startX, startWidth]);
 
   // Helper to get status color
   const getStatusColor = (statusCode: number | null) => {
@@ -70,7 +128,7 @@ export function RequestsTable() {
           Discovered Requests
         </CardTitle>
         <CardDescription>
-          All HTTP requests found in the HAR file
+          All requests found in the HAR file
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -139,39 +197,105 @@ export function RequestsTable() {
               <Table>
                 <TableHeader className="sticky top-0 bg-background z-10 border-b">
                   <TableRow>
-                    <TableHead className="w-[80px]">Method</TableHead>
-                    <TableHead className="w-[150px]">Domain</TableHead>
-                    <TableHead>Path</TableHead>
-                    <TableHead className="w-[70px]">Status</TableHead>
-                    <TableHead className="w-[120px]">Type</TableHead>
-                    <TableHead className="w-[90px]">Duration</TableHead>
+                    <TableHead
+                      className="relative group select-none"
+                      style={{ width: columnWidths.method }}
+                    >
+                      Method
+                      <div
+                        className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary/50 group-hover:bg-primary/30"
+                        onMouseDown={(e) => handleMouseDown("method", e)}
+                      />
+                    </TableHead>
+                    <TableHead
+                      className="relative group select-none"
+                      style={{ width: columnWidths.domain }}
+                    >
+                      Domain
+                      <div
+                        className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary/50 group-hover:bg-primary/30"
+                        onMouseDown={(e) => handleMouseDown("domain", e)}
+                      />
+                    </TableHead>
+                    <TableHead
+                      className="relative group select-none"
+                      style={{ width: columnWidths.path }}
+                    >
+                      Path
+                      <div
+                        className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary/50 group-hover:bg-primary/30"
+                        onMouseDown={(e) => handleMouseDown("path", e)}
+                      />
+                    </TableHead>
+                    <TableHead
+                      className="relative group select-none"
+                      style={{ width: columnWidths.status }}
+                    >
+                      Status
+                      <div
+                        className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary/50 group-hover:bg-primary/30"
+                        onMouseDown={(e) => handleMouseDown("status", e)}
+                      />
+                    </TableHead>
+                    <TableHead
+                      className="relative group select-none"
+                      style={{ width: columnWidths.type }}
+                    >
+                      Type
+                      <div
+                        className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary/50 group-hover:bg-primary/30"
+                        onMouseDown={(e) => handleMouseDown("type", e)}
+                      />
+                    </TableHead>
+                    <TableHead
+                      className="relative group select-none"
+                      style={{ width: columnWidths.duration }}
+                    >
+                      Duration
+                      <div
+                        className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary/50 group-hover:bg-primary/30"
+                        onMouseDown={(e) => handleMouseDown("duration", e)}
+                      />
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {requests.map((request) => (
                     <TableRow key={request.id}>
-                      <TableCell>
+                      <TableCell style={{ width: columnWidths.method }}>
                         <Badge variant="outline" className={getMethodColor(request.method)}>
                           {request.method}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-mono text-xs truncate max-w-[150px]">
+                      <TableCell
+                        className="font-mono text-xs truncate"
+                        style={{ width: columnWidths.domain, maxWidth: columnWidths.domain }}
+                      >
                         {request.domain}
                       </TableCell>
-                      <TableCell className="font-mono text-xs truncate max-w-[300px]">
+                      <TableCell
+                        className="font-mono text-xs truncate"
+                        style={{ width: columnWidths.path, maxWidth: columnWidths.path }}
+                      >
                         {request.path}
                       </TableCell>
-                      <TableCell>
+                      <TableCell style={{ width: columnWidths.status }}>
                         {request.status_code && (
                           <Badge className={getStatusColor(request.status_code)}>
                             {request.status_code}
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground truncate max-w-[120px]">
+                      <TableCell
+                        className="text-xs text-muted-foreground truncate"
+                        style={{ width: columnWidths.type, maxWidth: columnWidths.type }}
+                      >
                         {request.content_type || "-"}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
+                      <TableCell
+                        className="text-xs text-muted-foreground"
+                        style={{ width: columnWidths.duration }}
+                      >
                         {request.duration_ms ? `${request.duration_ms}ms` : "-"}
                       </TableCell>
                     </TableRow>

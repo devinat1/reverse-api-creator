@@ -5,16 +5,45 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle2, XCircle, Loader2, Clock, AlertCircle } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, Clock, AlertCircle, Copy, Check } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { useState, useMemo } from "react";
+import { Button } from "@/components/ui/button";
 
 export function ExecutionResults() {
-  const { isExecuting, executionResult } = useAppStore();
+  const { isExecuting, executionResult, _hasHydrated } = useAppStore();
+  const [copiedBody, setCopiedBody] = useState(false);
 
-  // Don't render if not executing and no result
-  if (!isExecuting && !executionResult) return null;
+  // Extract response for hooks - must be called unconditionally
+  const response = executionResult?.response;
+
+  // Helper to format JSON - must be defined before useMemo
+  const formatJSON = (str: string) => {
+    try {
+      return JSON.stringify(JSON.parse(str), null, 2);
+    } catch {
+      return str;
+    }
+  };
+
+  // Memoize formatted response body for performance
+  const formattedBody = useMemo(() => {
+    if (!response) return "";
+    return response.headers["content-type"]?.includes("json")
+      ? formatJSON(response.body)
+      : response.body;
+  }, [response]);
+
+  // Memoize language detection
+  const responseLanguage = useMemo(() => {
+    if (!response) return "text";
+    return response.headers["content-type"]?.includes("json") ? "json" : "text";
+  }, [response]);
+
+  // Don't render if not hydrated, not executing, and no result
+  if (!_hasHydrated || (!isExecuting && !executionResult)) return null;
 
   // Executing state
   if (isExecuting) {
@@ -34,7 +63,7 @@ export function ExecutionResults() {
   // Must have result at this point
   if (!executionResult) return null;
 
-  const { success, request, response, timing, error } = executionResult;
+  const { success, request, timing, error } = executionResult;
 
   // Helper to determine status color
   const getStatusColor = (statusCode: number) => {
@@ -44,13 +73,18 @@ export function ExecutionResults() {
     return "bg-red-500";
   };
 
-  // Helper to format JSON
-  const formatJSON = (str: string) => {
+  // Handle copy response body
+  const handleCopyBody = async () => {
+    if (!response) return;
+    setCopiedBody(true);
     try {
-      return JSON.stringify(JSON.parse(str), null, 2);
-    } catch {
-      return str;
+      await navigator.clipboard.writeText(response.body);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+      setCopiedBody(false);
+      return;
     }
+    setTimeout(() => setCopiedBody(false), 2000);
   };
 
   return (
@@ -98,19 +132,30 @@ export function ExecutionResults() {
 
               <TabsContent value="body" className="mt-4">
                 <div className="relative">
+                  <Button
+                    onClick={handleCopyBody}
+                    variant="secondary"
+                    size="icon"
+                    className="absolute top-2 right-2 z-10 h-8 w-8"
+                  >
+                    {copiedBody ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
                   <SyntaxHighlighter
-                    language={response.headers["content-type"]?.includes("json") ? "json" : "text"}
+                    language={responseLanguage}
                     style={vscDarkPlus}
                     customStyle={{
                       borderRadius: "0.5rem",
                       padding: "1rem",
+                      paddingRight: "3rem",
                       fontSize: "0.875rem",
                       maxHeight: "400px",
                     }}
                   >
-                    {response.headers["content-type"]?.includes("json")
-                      ? formatJSON(response.body)
-                      : response.body}
+                    {formattedBody}
                   </SyntaxHighlighter>
                 </div>
               </TabsContent>

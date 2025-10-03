@@ -10,13 +10,12 @@ import { useCurlGeneration } from "@/lib/hooks";
 
 const EXAMPLE_PROMPTS = [
   "Get the weather forecast for San Francisco",
-  "Fetch user profile information",
-  "Create a new booking",
-  "Update account settings",
+  "Can you reverse engineer the API that gives me recipes for a given portion and calorie count?",
+  "Can you give me a curl command to get info about the LockheedC-130H Hercules HERBLK?",
 ];
 
 export function ApiDescriptionInput() {
-  const { jobId, promptText, setPromptText, setGenerationResult } = useAppStore();
+  const { jobId, promptText, setPromptText, setGenerationResult, _hasHydrated } = useAppStore();
   const { trigger, isMutating, error } = useCurlGeneration();
 
   const handleGenerate = async () => {
@@ -55,10 +54,11 @@ export function ApiDescriptionInput() {
         <div className="space-y-2">
           <Textarea
             placeholder="e.g., Get the weather forecast for San Francisco"
-            value={promptText}
+            value={_hasHydrated ? promptText : ""}
             onChange={(e) => setPromptText(e.target.value)}
             className="min-h-[100px] resize-none"
             disabled={!jobId || isMutating}
+            suppressHydrationWarning
           />
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground">

@@ -18,7 +18,7 @@ export function HarUploader() {
   const [isUploading, setIsUploading] = useState(false);
   const [url, setUrl] = useState("");
 
-  const { jobId, fileName, totalRequests, setJobId } = useAppStore();
+  const { jobId, fileName, totalRequests, setJobId, _hasHydrated } = useAppStore();
   const { data: status, error: statusError } = useJobStatus(jobId);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -117,7 +117,11 @@ export function HarUploader() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {!jobId ? (
+        {!_hasHydrated ? (
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : !jobId ? (
           <Tabs defaultValue="file" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="file" className="flex items-center gap-2">
@@ -208,14 +212,6 @@ export function HarUploader() {
               </div>
               {getStatusBadge()}
             </div>
-
-            {status?.status === "completed" && (
-              <div className="p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
-                <p className="text-sm text-green-800 dark:text-green-200">
-                  ✓ Processing complete • {status.total_requests} requests found
-                </p>
-              </div>
-            )}
 
             <Button
               variant="outline"

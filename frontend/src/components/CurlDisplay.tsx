@@ -19,16 +19,23 @@ export function CurlDisplay() {
     selectedRequestId,
     setIsExecuting,
     setExecutionResult,
+    _hasHydrated,
   } = useAppStore();
   const { trigger, isMutating } = useExecuteRequest();
   const [copied, setCopied] = useState(false);
 
-  // Don't render if no curl command
-  if (!curlCommand) return null;
+  // Don't render if not hydrated or no curl command
+  if (!_hasHydrated || !curlCommand) return null;
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(curlCommand);
     setCopied(true);
+    try {
+      await navigator.clipboard.writeText(curlCommand);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+      setCopied(false);
+      return;
+    }
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -91,12 +98,25 @@ export function CurlDisplay() {
 
         {/* Curl Command Display */}
         <div className="relative">
+          <Button
+            onClick={handleCopy}
+            variant="secondary"
+            size="icon"
+            className="absolute top-2 right-2 z-10 h-8 w-8"
+          >
+            {copied ? (
+              <Check className="h-4 w-4" />
+            ) : (
+              <Copy className="h-4 w-4" />
+            )}
+          </Button>
           <SyntaxHighlighter
             language="bash"
             style={vscDarkPlus}
             customStyle={{
               borderRadius: "0.5rem",
               padding: "1rem",
+              paddingRight: "3rem",
               fontSize: "0.875rem",
             }}
           >
@@ -104,35 +124,15 @@ export function CurlDisplay() {
           </SyntaxHighlighter>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2">
-          <Button
-            onClick={handleCopy}
-            variant="outline"
-            className="flex-1"
-          >
-            {copied ? (
-              <>
-                <Check className="mr-2 h-4 w-4" />
-                Copied!
-              </>
-            ) : (
-              <>
-                <Copy className="mr-2 h-4 w-4" />
-                Copy to Clipboard
-              </>
-            )}
-          </Button>
-
-          <Button
-            onClick={handleExecute}
-            disabled={!selectedRequestId || isMutating}
-            className="flex-1"
-          >
-            <Play className="mr-2 h-4 w-4" />
-            {isMutating ? "Executing..." : "Execute Request"}
-          </Button>
-        </div>
+        {/* Execute Button */}
+        <Button
+          onClick={handleExecute}
+          disabled={!selectedRequestId || isMutating}
+          className="w-full"
+        >
+          <Play className="mr-2 h-4 w-4" />
+          {isMutating ? "Executing..." : "Execute Request"}
+        </Button>
       </CardContent>
     </Card>
   );

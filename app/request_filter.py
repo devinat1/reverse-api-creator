@@ -1,9 +1,12 @@
 import re
+import logging
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
 
 from app.models import Request
+
+logger = logging.getLogger(__name__)
 
 
 class RequestFilter:
@@ -82,6 +85,16 @@ class RequestFilter:
         """
         score = 0.0
 
+        # Strong boost for API subdomains (e.g., api.example.com, api-v2.example.com)
+        if req.domain:
+            domain_lower = req.domain.lower()
+            # Check if domain starts with "api." or contains "api-"
+            if domain_lower.startswith("api.") or ".api." in domain_lower or domain_lower.startswith("api-"):
+                score += 15.0
+            # Boost for other API-like domain keywords
+            elif any(keyword in domain_lower for keyword in ["gateway", "service", "rest", "graphql"]):
+                score += 10.0
+
         # Boost for JSON content type (typical for APIs)
         if req.content_type and "json" in req.content_type.lower():
             score += 10.0
@@ -95,14 +108,20 @@ class RequestFilter:
             score += 3.0
             # Extra boost if query params contain API-like keywords
             query_str = str(req.query_params).lower()
-            if any(api_term in query_str for api_term in ["format", "api", "key", "token"]):
-                score += 2.0
+            if any(api_term in query_str for api_term in ["id", "format", "api", "key", "token", "timestamp", "limit", "offset"]):
+                score += 5.0
 
-        # Penalty for static assets
+        # Strong penalty for static assets
         if req.path:
-            static_extensions = [".jpg", ".jpeg", ".png", ".gif", ".css", ".js", ".ico", ".svg", ".woff", ".ttf"]
+            static_extensions = [".jpg", ".jpeg", ".png", ".gif", ".css", ".js", ".ico", ".svg", ".woff", ".ttf", ".woff2", ".eot"]
             if any(req.path.lower().endswith(ext) for ext in static_extensions):
-                score -= 20.0
+                score -= 30.0
+
+        # Strong penalty for static resource paths
+        if req.path:
+            static_paths = ["/static/", "/bundle/", "/assets/", "/dist/", "/public/", "/_next/", "/webpack/"]
+            if any(static_path in req.path.lower() for static_path in static_paths):
+                score -= 30.0
 
         # Boost for keyword matches in URL (prioritize exact matches)
         if keywords:
@@ -187,6 +206,12 @@ class RequestFilter:
             for req in results
         ]
         scored_results.sort(key=lambda x: x[1], reverse=True)
+
+        # Log top results for debugging
+        logger.info(f"Filtering with keywords: {keywords}")
+        logger.info(f"Top {min(5, len(scored_results))} scored results:")
+        for req, score in scored_results[:5]:
+            logger.info(f"  Score: {score:6.1f} | {req.method:6s} | {req.domain:30s} | {req.path[:60]}")
 
         # Return top results
         return [req for req, score in scored_results[:max_results]]

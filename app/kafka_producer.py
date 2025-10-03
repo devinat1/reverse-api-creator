@@ -23,7 +23,7 @@ class KafkaProducerService:
         self.producer = AIOKafkaProducer(
             bootstrap_servers=self.bootstrap_servers,
             value_serializer=lambda v: json.dumps(v).encode("utf-8"),
-            max_request_size=10485760,  # 10MB (default is 1MB)
+            max_request_size=52428800,  # 50MB (default is 1MB)
         )
         await self.producer.start()
         logger.info("Kafka producer started")
