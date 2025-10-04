@@ -16,8 +16,6 @@ HAR file processing API with Kafka event-driven architecture, S3/MinIO storage, 
 - **Rate Limiting**: Redis-backed rate limiting per endpoint
 - **Model Fallback**: Primary model (o3-mini) with gpt-4o fallback
 - **Observability**: Helicone integration for LLM monitoring
-- **Safety Features**: Domain blocklist for request execution and URL conversion
-- **Kafka UI**: Web-based Kafka cluster management and monitoring
 
 ## Architecture
 
@@ -32,7 +30,7 @@ Web UI (Next.js) → FastAPI → Kafka Topic → Consumer Worker
 
 ## Quick Start
 
-**Quick Option**: Use `make dev` to start infrastructure and initialize database, then run `make run-api` and `make run-consumer`. See `make help` for all commands.
+**Quick Option**: Use `make dev` to start infrastructure and initialize database, then run `make run-api` and `make run-consumer`. See `make help` for all commands. Run `yarn` followed by `yarn dev` in frontend to start the web client.
 
 ### Prerequisites
 
@@ -74,26 +72,16 @@ cp .env.example .env
 
 ```bash
 # Create tables with pg_trgm extension for full-text search
-uv run python -c "
-from app.database import engine, Base
-from sqlalchemy import text
-
-# Enable pg_trgm extension
-with engine.connect() as conn:
-    conn.execute(text('CREATE EXTENSION IF NOT EXISTS pg_trgm'))
-    conn.commit()
-
-# Create tables
-Base.metadata.create_all(bind=engine)
-print('Database initialized successfully')
-"
+make init-db
+or: uv run python scripts/init_db.py
 ```
 
 ### 5. Setup Frontend (Optional)
 
 ```bash
 cd frontend
-npm install
+npm install (or yarn)
+npm run dev (or yarn dev)
 cd ..
 ```
 
@@ -107,7 +95,7 @@ uv run python app/main.py
 uv run python app/consumer.py
 
 # Terminal 3 (optional): Start the web UI
-cd frontend && npm run dev
+cd frontend && npm run dev (or yarn dev)
 # Access UI at http://localhost:3000
 ```
 
