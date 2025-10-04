@@ -1,7 +1,7 @@
 .PHONY: help install start-infra stop-infra init-db run-api run-consumer dev clean
 
 help:
-	@echo "CloudCruise - HAR File Processing API"
+	@echo "HAR File Processing API"
 	@echo ""
 	@echo "Available commands:"
 	@echo "  make install      - Install dependencies using uv"
