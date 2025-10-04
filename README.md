@@ -1,5 +1,6 @@
 HAR file processing API
-![Setup and Demo](https://youtu.be/qMCH0PkwJzE)
+
+[Setup and Demo](https://youtu.be/qMCH0PkwJzE)
 
 ## Features
 
