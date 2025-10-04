@@ -1,4 +1,5 @@
 import boto3
+from botocore.config import Config
 from botocore.exceptions import ClientError
 from datetime import datetime
 from typing import Optional
@@ -17,6 +18,7 @@ class StorageService:
             aws_access_key_id=settings.s3_access_key,
             aws_secret_access_key=settings.s3_secret_key,
             region_name=settings.s3_region,
+            config=Config(s3={'addressing_style': 'path'}),
         )
         self.bucket_name = settings.s3_bucket_name
 
