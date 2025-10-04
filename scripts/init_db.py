@@ -3,7 +3,9 @@
 
 from sqlalchemy import text
 
+# Import models to register them with Base metadata
 from app.database import engine, Base
+from app.models import HARFile, Request  # noqa: F401
 
 
 def init_database():
