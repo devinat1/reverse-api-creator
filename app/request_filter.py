@@ -2,7 +2,7 @@ import re
 import logging
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, func
+from sqlalchemy import or_, func, Text
 
 from app.models import Request
 
@@ -86,6 +86,21 @@ class RequestFilter:
             "path",
             "json",
             "xml",
+            # Generic command/interaction words to exclude
+            "give",
+            "show",
+            "tell",
+            "find",
+            "can",
+            "you",
+            "me",
+            "my",
+            "curl",
+            "command",
+            "info",
+            "information",
+            "data",
+            "please",
         }
 
         # Extract words (alphanumeric sequences)
@@ -286,22 +301,47 @@ class RequestFilter:
 
         # If we have keywords, filter by them
         if keywords:
-            # Build OR conditions for keyword matching across URL, domain, path
+            # Build OR conditions for keyword matching across URL, domain, path, and query params
             conditions = []
             for keyword in keywords:
                 keyword_pattern = f"%{keyword}%"
                 conditions.append(Request.url.ilike(keyword_pattern))
                 conditions.append(Request.domain.ilike(keyword_pattern))
                 conditions.append(Request.path.ilike(keyword_pattern))
+                # Also search in query_params JSON field (converted to text for ILIKE)
+                conditions.append(
+                    func.cast(Request.query_params, Text).ilike(keyword_pattern)
+                )
 
             query = query.filter(or_(*conditions))
 
         # Get all matching results
         results = query.all()
 
-        # If no keyword matches, fall back to all requests (let scoring sort them)
-        if not results and not keywords:
-            results = query.all()
+        # If no keyword matches, or very few matches, add fallback candidates
+        # This prevents overly aggressive filtering from excluding the correct request
+        if keywords and len(results) < 5:
+            # Get base query without keyword filter
+            fallback_query = db.query(Request).filter(Request.har_file_id == har_file_id)
+            if http_method:
+                fallback_query = fallback_query.filter(Request.method == http_method)
+
+            all_results = fallback_query.all()
+
+            # Score all requests and take top candidates
+            scored_all = [
+                (req, RequestFilter._calculate_relevance_score(req, keywords))
+                for req in all_results
+            ]
+            scored_all.sort(key=lambda x: x[1], reverse=True)
+
+            # Add top-scoring non-matched requests to results
+            matched_ids = {r.id for r in results}
+            for req, score in scored_all[:10]:
+                if req.id not in matched_ids and score > 0:
+                    results.append(req)
+                    if len(results) >= 10:
+                        break
 
         # Calculate relevance scores and sort
         scored_results = [
