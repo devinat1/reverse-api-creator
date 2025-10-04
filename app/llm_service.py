@@ -20,6 +20,19 @@ class LLMService:
         self.fallback_model = settings.llm_fallback_model
         self.timeout = settings.llm_timeout
 
+    def _get_helicone_headers(self) -> Dict[str, str]:
+        """
+        Get Helicone headers for LLM observability.
+
+        Returns:
+            Dictionary of Helicone headers
+        """
+        headers = {}
+        if settings.helicone_api_key:
+            headers["Helicone-Auth"] = f"Bearer {settings.helicone_api_key}"
+            headers["Helicone-Property-Environment"] = "production"
+        return headers
+
     def _create_prompt(self, user_prompt: str, candidates: List[Dict[str, Any]]) -> str:
         """
         Create minimal prompt for LLM.
@@ -123,6 +136,7 @@ Return JSON with the index of the best match:
                 messages=[{"role": "user", "content": prompt}],
                 timeout=self.timeout,
                 response_format={"type": "json_object"},
+                extra_headers=self._get_helicone_headers(),
             )
 
             response_text = response.choices[0].message.content
@@ -150,6 +164,7 @@ Return JSON with the index of the best match:
                 messages=[{"role": "user", "content": prompt}],
                 timeout=self.timeout,
                 response_format={"type": "json_object"},
+                extra_headers=self._get_helicone_headers(),
             )
 
             response_text = response.choices[0].message.content

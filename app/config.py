@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     s3_region: str = "us-east-1"
 
     # Kafka
-    kafka_bootstrap_servers: str = "localhost:9092"
+    kafka_bootstrap_servers: str = "localhost:9094"
     kafka_topic_har_uploads: str = "har-uploads"
     kafka_consumer_group: str = "har-processor"
 
@@ -32,6 +32,7 @@ class Settings(BaseSettings):
 
     # LLM
     openai_api_key: str = ""
+    helicone_api_key: str = ""
     llm_primary_model: str = "o3-mini-2025-01-31"
     llm_fallback_model: str = "gpt-4o-2024-08-06"
     llm_max_candidates: int = 10
