@@ -71,14 +71,14 @@ export function CurlDisplay() {
       <CardContent className="space-y-4">
         {/* Matched Request Info */}
         {matchedRequest && (
-          <Alert>
-            <AlertDescription>
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline">{matchedRequest.method}</Badge>
-                <span className="text-sm font-mono truncate flex-1">
+          <Alert className="overflow-hidden">
+            <AlertDescription className="overflow-x-auto min-w-0">
+              <div className="flex items-center gap-2 min-w-max">
+                <Badge variant="outline" className="shrink-0">{matchedRequest.method}</Badge>
+                <span className="text-sm font-mono whitespace-nowrap">
                   {matchedRequest.url}
                 </span>
-                <Badge variant="secondary">
+                <Badge variant="secondary" className="shrink-0">
                   {matchedRequest.status_code}
                 </Badge>
               </div>
@@ -97,7 +97,7 @@ export function CurlDisplay() {
         )}
 
         {/* Curl Command Display */}
-        <div className="relative">
+        <div className="relative w-full overflow-hidden">
           <Button
             onClick={handleCopy}
             variant="secondary"
@@ -110,18 +110,32 @@ export function CurlDisplay() {
               <Copy className="h-4 w-4" />
             )}
           </Button>
-          <SyntaxHighlighter
-            language="bash"
-            style={vscDarkPlus}
-            customStyle={{
-              borderRadius: "0.5rem",
-              padding: "1rem",
-              paddingRight: "3rem",
-              fontSize: "0.875rem",
-            }}
-          >
-            {curlCommand}
-          </SyntaxHighlighter>
+          <div className="overflow-x-auto">
+            <SyntaxHighlighter
+              language="bash"
+              style={vscDarkPlus}
+              wrapLines={false}
+              wrapLongLines={false}
+              PreTag="div"
+              customStyle={{
+                borderRadius: "0.5rem",
+                padding: "1rem",
+                paddingRight: "3rem",
+                fontSize: "0.875rem",
+                margin: 0,
+                whiteSpace: "pre",
+              }}
+              codeTagProps={{
+                style: {
+                  whiteSpace: "pre",
+                  wordBreak: "normal",
+                  overflowWrap: "normal",
+                }
+              }}
+            >
+              {curlCommand}
+            </SyntaxHighlighter>
+          </div>
         </div>
 
         {/* Execute Button */}
