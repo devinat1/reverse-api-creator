@@ -1,4 +1,5 @@
-HAR file processing API with Kafka event-driven architecture, S3/MinIO storage, PostgreSQL metadata indexing, and LLM-powered curl command generation.
+HAR file processing API
+![Setup and Demo](https://youtu.be/qMCH0PkwJzE)
 
 ## Features
 
