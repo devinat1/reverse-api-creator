@@ -173,11 +173,28 @@ uv run pytest
 
 ### Load Testing
 
+Load test suite with Locust covering HAR uploads, curl generation, request execution, and rate limiting.
+
 ```bash
-# Run load tests with Locust
-uv run locust -f tests/load_test.py
+# Start Locust web UI
+locust -f tests/load/locustfile.py --host=http://localhost:8000
 # Open http://localhost:8089
+
+# Headless mode
+locust -f tests/load/locustfile.py --host=http://localhost:8000 \
+  --users 50 --spawn-rate 5 --run-time 60s --headless
+
+# Test specific scenario
+locust -f tests/load/locustfile.py --host=http://localhost:8000 \
+  RateLimitTestUser --users 20 --spawn-rate 10 --headless
 ```
+
+**Available user classes:**
+- `NormalUser` - Mixed operations (uploads + status checks)
+- `CurlGenerationUser` - LLM curl generation testing
+- `RateLimitTestUser` - Rate limit testing (aggressive)
+- `RequestExecutionUser` - Request execution testing
+- `MixedWorkloadUser` - Realistic mixed workload (default)
 
 ### Management Consoles
 
